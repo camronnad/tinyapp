@@ -16,5 +16,8 @@
   "bugs": {
     "url": "https://github.com/camronnad/tinyapp/issues"
   },
-  "homepage": "https://github.com/camronnad/tinyapp#readme"
+  "homepage": "https://github.com/camronnad/tinyapp#readme",
+  "dependencies": {
+    "express": "^4.18.2"
+  }
 }
