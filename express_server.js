@@ -1,4 +1,15 @@
-function generateRandomString() {}
+function generateRandomString() {
+  let result = '';
+  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  const charactersLength = characters.length;
+  let counter = 0;
+  while (counter < 6) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength));
+    counter += 1;
+  }
+  return result;
+}
+
 
 const express = require('express');
 const app = express();
@@ -22,9 +33,16 @@ app.get("/urls/new", (req, res) => {
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body);
-  res.send("Ok");
-})
+  const shortUrl = generateRandomString()
+urlDatabase[shortUrl] = req.body.longURL
+ res.redirect(`/urls/${shortUrl}`); 
+});
+
+app.get("/u/:id", (req, res) => {
+  const id = req.params.id
+  const longURL = urlDatabase[id];
+  res.redirect(longURL);
+});
 
 app.get("/urls.json", (req, res) => {
   res.json(urlDatabase);
