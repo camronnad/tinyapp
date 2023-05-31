@@ -34,7 +34,10 @@ app.post("/urls/:id/delete", (req, res) => {
   res.redirect("/urls")
 })
 
-
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username);
+  res.send(200)
+});
 
 app.get("/urls/new", (req, res) => {
  res.render("urls_new.ejs");
