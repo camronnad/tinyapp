@@ -17,10 +17,20 @@
         <a class="nav-item nav-link" href="/urls">My URLs</a>
         <a class="nav-item nav-link" href="/urls/new">Create New URL</a>
       </div>
-      <form action="/login" method="POST">
-        <input type="text" name="username">
+    <% if (username) { %> 
+      <span style="margin-left: 17em;">Logged in as: <%= username %></span>
+      <form action="/logout" method="POST">
+         <button class="btn btn-outline-dark" style="margin-left: 1em;">Logout</button> 
+       </form>
+      <% } else { %> 
+        
+        <form action="/login" method="POST"> 
+    
+       <input type="text" name="username">
+
         <button>Login</button> 
       </form>
+      <%}%>
     </div>
   </nav>
 </header>
