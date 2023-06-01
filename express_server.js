@@ -36,6 +36,10 @@ app.get("/", (req, res) => {
 res.send("Hello!");
 });
 
+app.get("/register", (req,res) => {
+  res.render("urls_register.ejs")
+})
+
 app.post("/urls/:id/delete", (req, res) => {
   const id = req.params.id;
   delete urlDatabase[id];
