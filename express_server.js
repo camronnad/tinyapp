@@ -1,5 +1,8 @@
-//Use for generating Ids 
+////////////////////////////////////////////////////////////////////////////////
+// Helper Functions
+////////////////////////////////////////////////////////////////////////////////
 
+// function to Use for generating Ids 
 function generateRandomString() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -10,6 +13,16 @@ function generateRandomString() {
     counter += 1;
   }
   return result;
+}
+
+// function to lookup a user by email
+function findUserByEmail(email) {
+  for (const userId in users) {
+    if (users[userId].email === email) {
+      return users[userId];
+    }
+  }
+  return null; // Return null if user not found
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -36,8 +49,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
 app.use((req, res, next) => { 
-  if (req.cookies["username"]) {
-    req.username = req.cookies["username"]
+  if (req.cookies["user_id"]) {
+    req.username = req.cookies["user_id"]
   }
   next()
 });
@@ -77,19 +90,34 @@ res.send("Hello!");
 //DISPLAYS the Register Form
 app.get("/register", (req,res) => {
   res.render("urls_register.ejs")
-})
+});
 
 //ADDS New User Object and Redirects Us to the index page
 app.post("/register", (req, res) => {
+const email = req.body.email;
+const password = req.body.password;
+
+// If our email and passwords fields are left empty, return status code
+if (!email || !password) {
+  res.status(400).send("Email and password cannot be empty");
+  return;
+}
+// If users info is already in our DB, send status code
+const findUser = findUserByEmail(email)
+if (findUser) {
+  res.status(400).send("Email already exists");
+  return;
+  }
+
 const id = generateRandomString();
 users[id] = {
   id: id,
-  email: req.body.email,
-  password: req.body.password,
+  email,
+  password,
 }
-res.cookie("user_id", id)
+res.cookie("user_id", id);
   res.redirect("/urls");
-})
+});
 
 //
 app.post("/urls/:id/delete", (req, res) => {
