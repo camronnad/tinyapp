@@ -50,7 +50,7 @@ app.use(cookieParser());
 app.use(morgan('dev'));
 app.use((req, res, next) => { 
   if (req.cookies["user_id"]) {
-    req.username = req.cookies["user_id"]
+    req.user = req.cookies["user_id"]
   }
   next()
 });
@@ -89,7 +89,10 @@ res.send("Hello!");
 
 //DISPLAYS the Register Form
 app.get("/register", (req,res) => {
-  res.render("urls_register.ejs")
+  const templateVars = { 
+    user: req.cookies["user_id"]
+  }
+  res.render("urls_register.ejs", templateVars);
 });
 
 //ADDS New User Object and Redirects Us to the index page
@@ -109,7 +112,7 @@ if (findUser) {
   return;
   }
 
-const id = generateRandomString();
+const id = Math.random().toString(36).substring(2, 8);
 users[id] = {
   id: id,
   email,
@@ -128,14 +131,37 @@ app.post("/urls/:id/delete", (req, res) => {
 
 //
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id")
-  res.redirect("/urls");
+  res.clearCookie("user_id");
+  res.redirect("/login");
 })
 
+app.get("/login", (req, res) => {
+  const templateVars = { 
+    user: req.cookies["user_id"]
+  }
+  res.render("urls_login.ejs", templateVars);
+});
 //
 app.post("/login", (req, res) => {
-  res.cookie("user_id", req.body.username);
-  res.redirect("/urls");
+  const email = req.body.email;
+  const password = req.body.password;
+  
+
+// If our email and passwords fields are left empty, return status code
+if (!email || !password) {
+  res.status(400).send("Email and password cannot be empty");
+  return;
+}
+
+const findUser = findUserByEmail(email)
+if (!findUser) {
+res.status(403).send(`No email under ${email} was found.`)
+}
+if (!findUser || findUser.password !== password) {
+res.status(403).send("Email or Password is incorrect")
+}
+res.cookie("user_id", findUser.id); 
+res.redirect("/urls");
 });
 
 //
@@ -179,8 +205,8 @@ app.post("/urls/:id/edit", (req, res) => {
 //
 app.get("/urls", (req, res) => {
   const templateVars = { 
-        user: [req.cookies["user_id"]],
-        urls: urlDatabase 
+        user: req.cookies["user_id"],
+        urls: urlDatabase,
       };
   res.render("urls_index.ejs", templateVars);
 });
