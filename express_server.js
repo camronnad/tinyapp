@@ -166,7 +166,12 @@ res.redirect("/urls");
 
 //
 app.get("/urls/new", (req, res) => {
- res.render("urls_new.ejs");
+  const templateVars = { 
+    user: req.cookies["user_id"],
+  }
+  res.render("urls_new.ejs",templateVars);
+
+
 });
 
 //
