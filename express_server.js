@@ -25,6 +25,8 @@ function findUserByEmail(email) {
   return null; // Return null if user not found
 }
 
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Constants
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,9 +62,16 @@ app.use((req, res, next) => {
 ////////////////////////////////////////////////////////////////////////////////
 
 const urlDatabase = {
-   "b2xVn2": "http://www.lighthouselabs.ca",
-  "9sm5xK": "http://www.google.com"
+  b6UTxQ: {
+    longURL: "https://www.tsn.ca",
+    userID: "aJ48lW",
+  },
+  i3BoGr: {
+    longURL: "https://www.google.ca",
+    userID: "aJ48lW",
+  },
 };
+
 
 const users = {
   userRandomID: {
@@ -77,6 +86,15 @@ const users = {
   },
 };
 
+const urlsForUser = (urlDatabase, userID) => {
+const results = {};
+for (let shortUrl in urlDatabase) {
+  if (urlDatabase[shortUrl].userID === userID) {
+    results[shortUrl] = urlDatabase[shortUrl]
+  }
+}
+return results;
+};
 ////////////////////////////////////////////////////////////////////////////////
 // Routes
 ////////////////////////////////////////////////////////////////////////////////
@@ -129,10 +147,33 @@ res.cookie("user_id", id);
 
 //
 app.post("/urls/:id/delete", (req, res) => {
-  const id = req.params.id;
-  delete urlDatabase[id];
-  res.redirect("/urls")
-})
+  const userId = req.user; // Access the logged-in user ID from the request object
+  const shortUrl = req.params.id;
+  const url = urlDatabase[shortUrl];
+
+  // Check if the URL exists
+  if (!url) {
+    res.status(404).send("URL not found");
+    return;
+  }
+
+  // Check if the user is logged in
+  if (!userId) {
+    res.status(401).send("You need to be logged in to perform this action");
+    return;
+  }
+
+  // Check if the user owns the URL
+  if (url.userID !== userId) {
+    res.status(403).send("You do not own this URL");
+    return;
+  }
+
+  // Delete the URL
+  delete urlDatabase[shortUrl];
+  res.redirect("/urls");
+});
+
 
 //
 app.post("/logout", (req, res) => {
@@ -182,8 +223,12 @@ app.get("/urls/new", (req, res) => {
     res.redirect("/login");
   return;
   }
+
+
+   console.log(req.params)
   const templateVars = { 
     user: req.cookies["user_id"],
+   
   }
   res.render("urls_new.ejs",templateVars);
 });
@@ -191,19 +236,26 @@ app.get("/urls/new", (req, res) => {
 //
 app.post("/urls", (req, res) => {
   
+  // console.log("sessionvalues is: ", req.cookies["user_id"])
   if (!req.cookies["user_id"]) {
     res.status(401).send("You need to be logged in to shorten URLs.");
     return;
   }
-  const shortUrl = generateRandomString()
-urlDatabase[shortUrl] = req.body.longURL
- res.redirect(`/urls/${shortUrl}`); 
+  const id = generateRandomString();
+  urlDatabase[id] = {longURL: req.body.longURL, userID: req.cookies["user_id"] };
+  console.log("urlDatabase:", urlDatabase)
+ res.redirect(`/urls/${id}`); 
 });
 
 //
 app.get("/u/:id", (req, res) => {
   const id = req.params.id
-  const longURL = urlDatabase[id];
+  const longURL = urlDatabase[id].longUrl;
+  if (res.cookies["user_id"]) {
+    res.status(401).send("You need to be logged in")
+    return;
+  }
+
   if (longURL) {
     res.redirect(longURL);
     return;
@@ -218,22 +270,62 @@ app.get("/urls.json", (req, res) => {
 
 //
 app.get("/urls/:id", (req, res) => {
-  
+ 
+  const userId = req.user;
+
   if (!req.cookies["user_id"]) {
     res.redirect("/login")
       return;
     }
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: req.cookies["user_id"] };
+    const shortUrl = req.params.id;
+    const url = urlDatabase[shortUrl];
+    
+    if (!url) {
+      res.status(404).send("URL not found");
+      return;
+    }
+
+    if (url.userID !== userId) {
+      res.status(403).send("You do not own this URL");
+      return;
+    }
+
+    const {id} = req.params
+    const longURL = urlDatabase[id].longURL
+    const templateVars = { id, longURL, user: req.cookies["user_id"] };
+  
   res.render("urls_show.ejs", templateVars);
 });
 
 //
 app.post("/urls/:id/edit", (req, res) => {
+  const userId = req.user; // Access the logged-in user ID from the request object
   const shortUrl = req.params.id;
-  const longUrl  = req.body.editUrl;
-  urlDatabase[shortUrl] = longUrl;
+  const url = urlDatabase[shortUrl];
+
+  // Check if the URL exists
+  if (!url) {
+    res.status(404).send("URL not found");
+    return;
+  }
+
+  // Check if the user is logged in
+  if (!userId) {
+    res.status(401).send("You need to be logged in to perform this action");
+    return;
+  }
+
+  // Check if the user owns the URL
+  if (url.userID !== userId) {
+    res.status(403).send("You do not own this URL");
+    return;
+  }
+
+  // Update the URL with the new longURL
+  url.longURL = req.body.editUrl;
   res.redirect("/urls");
-}); 
+});
+ 
 
 //
 app.get("/urls", (req, res) => {
@@ -242,9 +334,12 @@ app.get("/urls", (req, res) => {
   res.redirect("/login")
     return;
   }
+
+  const urls = urlsForUser(urlDatabase, req.cookies["user_id"])
+   
   const templateVars = { 
         user: req.cookies["user_id"],
-        urls: urlDatabase,
+        urls
       };
   res.render("urls_index.ejs", templateVars);
 });
