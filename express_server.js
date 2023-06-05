@@ -89,6 +89,11 @@ res.send("Hello!");
 
 //DISPLAYS the Register Form
 app.get("/register", (req,res) => {
+  
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+    return;
+  }
   const templateVars = { 
     user: req.cookies["user_id"]
   }
@@ -136,6 +141,10 @@ app.post("/logout", (req, res) => {
 })
 
 app.get("/login", (req, res) => {
+  if (req.cookies["user_id"]) {
+    res.redirect("/urls");
+    return;
+  }
   const templateVars = { 
     user: req.cookies["user_id"]
   }
@@ -156,9 +165,11 @@ if (!email || !password) {
 const findUser = findUserByEmail(email)
 if (!findUser) {
 res.status(403).send(`No email under ${email} was found.`)
+return;
 }
 if (!findUser || findUser.password !== password) {
 res.status(403).send("Email or Password is incorrect")
+return;
 }
 res.cookie("user_id", findUser.id); 
 res.redirect("/urls");
@@ -166,16 +177,24 @@ res.redirect("/urls");
 
 //
 app.get("/urls/new", (req, res) => {
+  
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login");
+  return;
+  }
   const templateVars = { 
     user: req.cookies["user_id"],
   }
   res.render("urls_new.ejs",templateVars);
-
-
 });
 
 //
 app.post("/urls", (req, res) => {
+  
+  if (!req.cookies["user_id"]) {
+    res.status(401).send("You need to be logged in to shorten URLs.");
+    return;
+  }
   const shortUrl = generateRandomString()
 urlDatabase[shortUrl] = req.body.longURL
  res.redirect(`/urls/${shortUrl}`); 
@@ -185,7 +204,11 @@ urlDatabase[shortUrl] = req.body.longURL
 app.get("/u/:id", (req, res) => {
   const id = req.params.id
   const longURL = urlDatabase[id];
-  res.redirect(longURL);
+  if (longURL) {
+    res.redirect(longURL);
+    return;
+  }
+  res.status(404).send("not found");
 });
 
 //
@@ -195,7 +218,12 @@ app.get("/urls.json", (req, res) => {
 
 //
 app.get("/urls/:id", (req, res) => {
-  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], username: req.cookies["user_id"] };
+  
+  if (!req.cookies["user_id"]) {
+    res.redirect("/login")
+      return;
+    }
+  const templateVars = { id: req.params.id, longURL: urlDatabase[req.params.id], user: req.cookies["user_id"] };
   res.render("urls_show.ejs", templateVars);
 });
 
@@ -209,6 +237,11 @@ app.post("/urls/:id/edit", (req, res) => {
 
 //
 app.get("/urls", (req, res) => {
+  
+  if (!req.cookies["user_id"]) {
+  res.redirect("/login")
+    return;
+  }
   const templateVars = { 
         user: req.cookies["user_id"],
         urls: urlDatabase,
