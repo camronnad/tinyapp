@@ -34,6 +34,7 @@ function findUserByEmail(email) {
 const morgan = require('morgan');
 const cookieParser = require('cookie-parser');
 const express = require('express');
+const bcrypt = require('bcryptjs')
 
 ////////////////////////////////////////////////////////////////////////////////
 // Configuration
@@ -50,7 +51,7 @@ app.set("view-engine", "ejs");
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(morgan('dev'));
-app.use((req, res, next) => { 
+app.use((req, res, next) => {
   if (req.cookies["user_id"]) {
     req.user = req.cookies["user_id"]
   }
@@ -87,13 +88,13 @@ const users = {
 };
 
 const urlsForUser = (urlDatabase, userID) => {
-const results = {};
-for (let shortUrl in urlDatabase) {
-  if (urlDatabase[shortUrl].userID === userID) {
-    results[shortUrl] = urlDatabase[shortUrl]
+  const results = {};
+  for (let shortUrl in urlDatabase) {
+    if (urlDatabase[shortUrl].userID === userID) {
+      results[shortUrl] = urlDatabase[shortUrl]
+    }
   }
-}
-return results;
+  return results;
 };
 ////////////////////////////////////////////////////////////////////////////////
 // Routes
@@ -102,17 +103,17 @@ return results;
 // SENDS "Hello!" to that URL
 app.get("/", (req, res) => {
   console.log("hello")
-res.send("Hello!");
+  res.send("Hello!");
 });
 
 //DISPLAYS the Register Form
-app.get("/register", (req,res) => {
-  
+app.get("/register", (req, res) => {
+
   if (req.cookies["user_id"]) {
     res.redirect("/urls");
     return;
   }
-  const templateVars = { 
+  const templateVars = {
     user: req.cookies["user_id"]
   }
   res.render("urls_register.ejs", templateVars);
@@ -120,28 +121,31 @@ app.get("/register", (req,res) => {
 
 //ADDS New User Object and Redirects Us to the index page
 app.post("/register", (req, res) => {
-const email = req.body.email;
-const password = req.body.password;
+  const email = req.body.email;
+  const password = req.body.password;
 
-// If our email and passwords fields are left empty, return status code
-if (!email || !password) {
-  res.status(400).send("Email and password cannot be empty");
-  return;
-}
-// If users info is already in our DB, send status code
-const findUser = findUserByEmail(email)
-if (findUser) {
-  res.status(400).send("Email already exists");
-  return;
+  // If our email and passwords fields are left empty, return status code
+  if (!email || !password) {
+    res.status(400).send("Email and password cannot be empty");
+    return;
+  }
+  // If users info is already in our DB, send status code
+  const findUser = findUserByEmail(email)
+  if (findUser) {
+    res.status(400).send("Email already exists");
+    return;
   }
 
-const id = Math.random().toString(36).substring(2, 8);
-users[id] = {
-  id: id,
-  email,
-  password,
-}
-res.cookie("user_id", id);
+  const id = Math.random().toString(36).substring(2, 8);
+  const hashedPassword = bcrypt.hashSync(password, 10); // Hash the password
+
+  users[id] = {
+    id: id,
+    email,
+    password: hashedPassword,
+  
+  }
+  res.cookie("user_id", id);
   res.redirect("/urls");
 });
 
@@ -186,7 +190,7 @@ app.get("/login", (req, res) => {
     res.redirect("/urls");
     return;
   }
-  const templateVars = { 
+  const templateVars = {
     user: req.cookies["user_id"]
   }
   res.render("urls_login.ejs", templateVars);
@@ -195,56 +199,61 @@ app.get("/login", (req, res) => {
 app.post("/login", (req, res) => {
   const email = req.body.email;
   const password = req.body.password;
-  
 
-// If our email and passwords fields are left empty, return status code
-if (!email || !password) {
-  res.status(400).send("Email and password cannot be empty");
-  return;
-}
+  // If our email and password fields are left empty, return status code
+  if (!email || !password) {
+    res.status(400).send("Email and password cannot be empty");
+    return;
+  }
 
-const findUser = findUserByEmail(email)
-if (!findUser) {
-res.status(403).send(`No email under ${email} was found.`)
-return;
-}
-if (!findUser || findUser.password !== password) {
-res.status(403).send("Email or Password is incorrect")
-return;
-}
-res.cookie("user_id", findUser.id); 
-res.redirect("/urls");
+  const user = findUserByEmail(email);
+
+  // If no user with the provided email is found, send status code
+  if (!user) {
+    res.status(403).send(`No email under ${email} was found.`);
+    return;
+  }
+
+  // Use bcrypt to compare the provided password with the hashed password
+  if (!bcrypt.compareSync(password, user.password)) {
+    res.status(403).send("Email or password is incorrect");
+    return;
+  }
+
+  res.cookie("user_id", user.id);
+  res.redirect("/urls");
 });
+
 
 //
 app.get("/urls/new", (req, res) => {
-  
+
   if (!req.cookies["user_id"]) {
     res.redirect("/login");
-  return;
+    return;
   }
 
 
-   console.log(req.params)
-  const templateVars = { 
+  console.log(req.params)
+  const templateVars = {
     user: req.cookies["user_id"],
-   
+
   }
-  res.render("urls_new.ejs",templateVars);
+  res.render("urls_new.ejs", templateVars);
 });
 
 //
 app.post("/urls", (req, res) => {
-  
+
   // console.log("sessionvalues is: ", req.cookies["user_id"])
   if (!req.cookies["user_id"]) {
     res.status(401).send("You need to be logged in to shorten URLs.");
     return;
   }
   const id = generateRandomString();
-  urlDatabase[id] = {longURL: req.body.longURL, userID: req.cookies["user_id"] };
+  urlDatabase[id] = { longURL: req.body.longURL, userID: req.cookies["user_id"] };
   console.log("urlDatabase:", urlDatabase)
- res.redirect(`/urls/${id}`); 
+  res.redirect(`/urls/${id}`);
 });
 
 //
@@ -270,30 +279,30 @@ app.get("/urls.json", (req, res) => {
 
 //
 app.get("/urls/:id", (req, res) => {
- 
+
   const userId = req.user;
 
   if (!req.cookies["user_id"]) {
     res.redirect("/login")
-      return;
-    }
-    const shortUrl = req.params.id;
-    const url = urlDatabase[shortUrl];
-    
-    if (!url) {
-      res.status(404).send("URL not found");
-      return;
-    }
+    return;
+  }
+  const shortUrl = req.params.id;
+  const url = urlDatabase[shortUrl];
 
-    if (url.userID !== userId) {
-      res.status(403).send("You do not own this URL");
-      return;
-    }
+  if (!url) {
+    res.status(404).send("URL not found");
+    return;
+  }
 
-    const {id} = req.params
-    const longURL = urlDatabase[id].longURL
-    const templateVars = { id, longURL, user: req.cookies["user_id"] };
-  
+  if (url.userID !== userId) {
+    res.status(403).send("You do not own this URL");
+    return;
+  }
+
+  const { id } = req.params
+  const longURL = urlDatabase[id].longURL
+  const templateVars = { id, longURL, user: req.cookies["user_id"] };
+
   res.render("urls_show.ejs", templateVars);
 });
 
@@ -325,22 +334,22 @@ app.post("/urls/:id/edit", (req, res) => {
   url.longURL = req.body.editUrl;
   res.redirect("/urls");
 });
- 
+
 
 //
 app.get("/urls", (req, res) => {
-  
+
   if (!req.cookies["user_id"]) {
-  res.redirect("/login")
+    res.redirect("/login")
     return;
   }
 
   const urls = urlsForUser(urlDatabase, req.cookies["user_id"])
-   
-  const templateVars = { 
-        user: req.cookies["user_id"],
-        urls
-      };
+
+  const templateVars = {
+    user: req.cookies["user_id"],
+    urls
+  };
   res.render("urls_index.ejs", templateVars);
 });
 
