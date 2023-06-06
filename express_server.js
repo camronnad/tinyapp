@@ -2,7 +2,7 @@
 // Constants
 ////////////////////////////////////////////////////////////////////////////////
 
-const {findUserByEmail, generateRandomString} = require('./helpers');
+const { findUserByEmail, generateRandomString } = require('./helpers');
 const morgan = require('morgan');
 const express = require('express');
 const bcrypt = require('bcryptjs')
@@ -24,7 +24,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(morgan('dev'));
 app.use(cookieSession({
   name: 'session',
-  keys: ["user_id"], 
+  keys: ["user_id"],
   maxAge: 24 * 60 * 60 * 1000, // Cookie expiration time (1 day in milliseconds)
 }));
 
@@ -115,10 +115,10 @@ app.post("/register", (req, res) => {
     id: id,
     email,
     password: hashedPassword,
-  
+
   }
   req.session.user_id = id
-  console.log("req.session.user_id" , req.session.user_id)
+  console.log("req.session.user_id", req.session.user_id)
   //res.cookie("user_id", id);
   res.redirect("/urls");
 });

@@ -20,7 +20,7 @@ function generateRandomString() {
 }
 
 
-module.exports = {findUserByEmail, generateRandomString}
+module.exports = { findUserByEmail, generateRandomString }
 
 
 
