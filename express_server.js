@@ -1,36 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////////
-// Helper Functions
-////////////////////////////////////////////////////////////////////////////////
-
-// function to Use for generating Ids 
-function generateRandomString() {
-  let result = '';
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const charactersLength = characters.length;
-  let counter = 0;
-  while (counter < 6) {
-    result += characters.charAt(Math.floor(Math.random() * charactersLength));
-    counter += 1;
-  }
-  return result;
-}
-
-// function to lookup a user by email
-function findUserByEmail(email) {
-  for (const userId in users) {
-    if (users[userId].email === email) {
-      return users[userId];
-    }
-  }
-  return null; // Return null if user not found
-}
-
-
-
-////////////////////////////////////////////////////////////////////////////////
 // Constants
 ////////////////////////////////////////////////////////////////////////////////
 
+const {findUserByEmail, generateRandomString} = require('./helpers');
 const morgan = require('morgan');
 const express = require('express');
 const bcrypt = require('bcryptjs')
@@ -129,7 +101,7 @@ app.post("/register", (req, res) => {
     return;
   }
   // If users info is already in our DB, send status code
-  const findUser = findUserByEmail(email)
+  const findUser = findUserByEmail(email, users)
   console.log(findUser)
   if (findUser) {
     res.status(400).send("Email already exists");
@@ -153,7 +125,7 @@ app.post("/register", (req, res) => {
 
 //
 app.post("/urls/:id/delete", (req, res) => {
-  const userId = req.user; // Access the logged-in user ID from the request object
+  const userId = req.session.user_id; // Access the logged-in user ID from the request object
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
 
@@ -208,7 +180,7 @@ app.post("/login", (req, res) => {
     return;
   }
 
-  const user = findUserByEmail(email);
+  const user = findUserByEmail(email, users);
 
   // If no user with the provided email is found, send status code
   if (!user) {
@@ -311,7 +283,7 @@ app.get("/urls/:id", (req, res) => {
 
 //
 app.post("/urls/:id/edit", (req, res) => {
-  const userId = req.user; // Access the logged-in user ID from the request object
+  const userId = req.session.user_id; // Access the logged-in user ID from the request object
   const shortUrl = req.params.id;
   const url = urlDatabase[shortUrl];
 
