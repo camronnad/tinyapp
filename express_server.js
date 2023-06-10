@@ -155,7 +155,7 @@ app.post("/urls/:id/delete", (req, res) => {
 
 //
 app.post("/logout", (req, res) => {
-  res.clearCookie("session");
+req.session = null
   res.redirect("/login");
 })
 
@@ -227,7 +227,6 @@ app.post("/urls", (req, res) => {
   }
   const id = generateRandomString();
   urlDatabase[id] = { longURL: req.body.longURL, userID: req.session.user_id };
-  console.log("urlDatabase:", urlDatabase)
   res.redirect(`/urls/${id}`);
 });
 
