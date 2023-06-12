@@ -18,6 +18,7 @@
           <button type="submit">Register</button>
         </form>
         <% } else { %>
+          <p>You are logged in as <%=user.email%>:</p>
           <form method="POST" action="/logout">
             <button type="submit">Logout</button>
           </form>

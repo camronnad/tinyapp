@@ -2,7 +2,7 @@
 // Constants
 ////////////////////////////////////////////////////////////////////////////////
 
-const { findUserByEmail, generateRandomString } = require('./helpers');
+const { findUserByEmail, generateRandomString, findUserById } = require('./helpers');
 const morgan = require('morgan');
 const express = require('express');
 const bcrypt = require('bcryptjs')
@@ -73,8 +73,11 @@ const urlsForUser = (urlDatabase, userID) => {
 
 // SENDS "Hello!" to that URL
 app.get("/", (req, res) => {
-  console.log("hello")
-  res.send("Hello!");
+  if (req.session.userId) {
+    res.redirect('/urls') 
+  }  {
+res.redirect('/login')
+  }
 });
 
 //DISPLAYS the Register Form
@@ -165,7 +168,7 @@ app.get("/login", (req, res) => {
     return;
   }
   const templateVars = {
-    user: req.session.user_id
+    user: findUserById(req.session.user_id, users)
   }
   res.render("urls_login.ejs", templateVars);
 });
@@ -211,7 +214,7 @@ app.get("/urls/new", (req, res) => {
 
   console.log(req.params)
   const templateVars = {
-    user: req.session.user_id,
+    user: findUserById(req.session.user_id, users),
 
   }
   res.render("urls_new.ejs", templateVars);
@@ -222,7 +225,7 @@ app.post("/urls", (req, res) => {
 
   // console.log("sessionvalues is: ", req.session.user_id])
   if (!req.session.user_id) {
-    res.status(401).send("You need to be logged in to shorten URLs.");
+    res.status(401).send("You need to be logged in to shorten URLs. <a href='/login'>Login</a>");
     return;
   }
   const id = generateRandomString();
@@ -233,11 +236,7 @@ app.post("/urls", (req, res) => {
 //
 app.get("/u/:id", (req, res) => {
   const id = req.params.id
-  const longURL = urlDatabase[id].longUrl;
-  if (req.session.user_id) {
-    res.status(401).send("You need to be logged in")
-    return;
-  }
+  const longURL = urlDatabase[id].longURL;
 
   if (longURL) {
     res.redirect(longURL);
@@ -257,7 +256,7 @@ app.get("/urls/:id", (req, res) => {
   const userId = req.session.user_id;
 
   if (!req.session.user_id) {
-    res.redirect("/login")
+    res.status(401).send("You need to be logged in to access urls. <a href='/login'>Login</a>")
     return;
   }
   const shortUrl = req.params.id;
@@ -275,7 +274,7 @@ app.get("/urls/:id", (req, res) => {
 
   const { id } = req.params
   const longURL = urlDatabase[id].longURL
-  const templateVars = { id, longURL, user: req.session.user_id };
+  const templateVars = { id, longURL, user: findUserById(req.session.user_id, users) };
 
   res.render("urls_show.ejs", templateVars);
 });
@@ -314,16 +313,17 @@ app.post("/urls/:id/edit", (req, res) => {
 app.get("/urls", (req, res) => {
 
   if (!req.session.user_id) {
-    res.redirect("/login")
+    res.status(401).send("You need to be logged in. <a href='/login'>Login</a>")
     return;
   }
 
   const urls = urlsForUser(urlDatabase, req.session.user_id)
 
   const templateVars = {
-    user: req.session.user_id,
+    user: findUserById(req.session.user_id, users),
     urls
   };
+  console.log("user" , templateVars.user)
   res.render("urls_index.ejs", templateVars);
 });
 

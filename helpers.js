@@ -7,6 +7,17 @@ function findUserByEmail(email, database) {
   return null;
 }
 
+function findUserById(id, database) {
+  console.log(database)
+  for (const userId in database) {
+    if (database[userId].id === id) {
+      return database[userId];
+    }
+  }
+  return null;
+}
+
+
 function generateRandomString() {
   let result = '';
   const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -20,7 +31,7 @@ function generateRandomString() {
 }
 
 
-module.exports = { findUserByEmail, generateRandomString }
+module.exports = { findUserByEmail, generateRandomString, findUserById }
 
 
 
